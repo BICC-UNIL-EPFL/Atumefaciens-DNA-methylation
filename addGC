@@ -1,0 +1,67 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+my %S;
+#my $fa = "atu_dna";
+#my $table = "all_coverage.txt";
+my $fa = "fused.fa";
+my $table = "all_coverage_fused.txt";
+local *FD;
+my $cur;
+open FD, $fa or die "Can't open $fa : $!";
+while ( <FD> ) {
+  if (/^>[^|]+\|([^|\s]+)/) {
+    $cur = $1;
+    $S{$cur} = "";
+    next;
+  }
+  if (/^>([^|\s]+)/) {
+    $cur = $1;
+    $S{$cur} = "";
+    next;
+  }
+  s/\s+$//s;
+  $S{$cur} .= uc;
+}
+close FD;
+open FD, $table or die "Can't open $table : $!";
+my $head = <FD>;
+$head =~ s/\s+$//s;
+print "$head\tGC\n";
+while ( <FD> ) {
+  s/\s+$//s;
+  my @F = split /\t/;
+  my %C;
+  for my $i (($F[1] - 1) .. ($F[2] - 1)) {
+    last if $i > length($S{$F[0]});
+    my $nt = substr $S{$F[0]}, $i, 1;
+    $C{$nt} += 1;
+  }
+  my $val = sprintf "%.3f\n", ($C{"C"} + $C{"G"}) / ($C{"A"} + $C{"C"} + $C{"G"} + $C{"T"});
+  push @F, $val;
+  print join("\t", @F);
+}
+close FD;
+exit 0;
+__END__
+==> atu_dna <==
+>chr|NC_003062| Chromosome circular; [Agrobacterium fabrum str. C58]  complete sequence
+AAGACCGAAATTTACGCACCTGTGGACAATCTGGGGAGAATTTTGAACAGTTCCGTCTTATTCCAGTAATTCACAGGCGT
+CTCGAAGACGAGAGACGCCACTTGCGGATTGTGGAAAAACACCACCTTATTCACCCCGCGGCTCGGCCCGTCGGACAATT
+CAGAGATTTGTCCCGGTTTATCAACAGGGGGAGAAAAACAGCGTGGAGAACAAAAAAAGCTTCTTCCATCTGCACCTGAT
+TTCGGACTCGACGGGAGAGACTCTGATGTCGGCCGGCCGCGCCGTCTCGGCGCAGTTTCATACATCCATGCCGGTGGAAC
+ATGTCTATCCGATGATCCGCAACCAGAAGCAGCTCGCGCAGGTCATCGATCTCATCGACAAGGAGCCCGGCATTGTTCTT
+TATACAATCGTTGATCAGCAGCTGGCGGAATTCCTGGATCTGCGCTGCCATGCGATTGGCGTGCCCTGCGTCAACGTTCT
+CGAACCGATCATCGGCATTTTCCAGACCTATCTCGGCGCGCCGTCCAGGCGGCGGGTGGGTGCGCAACACGCGCTGAATG
+CCGATTATTTCGCGCGGATCGAAGCACTCAATTTCGCCATGGACCATGATGACGGGCAGATGCCGGAGACCTATGACGAT
+GCGGATGTCGTCATCATCGGCATCAGCCGCACGTCGAAAACACCAACCAGCATCTATCTTGCTAACAGGGGCATAAAGAC
+chr	start	end	JC2140_neg	JC2307_neg	JC2307_pos
+NC_003062	1	2000	1391	1461	1286
+NC_003062	2001	4000	2581	2864	2530
+NC_003062	4001	6000	2574	2947	2615
+NC_003062	6001	8000	2546	2897	2668
+NC_003062	8001	10000	2536	2952	2761
+NC_003062	10001	12000	2512	2885	2824
+NC_003062	12001	14000	2458	2811	2880
+NC_003062	14001	16000	2432	2804	2857
+NC_003062	16001	18000	2447	2818	2874

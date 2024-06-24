@@ -1,0 +1,99 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+my %S;
+#my $fa = "atu_dna";
+#my $table = "all_GANTC.txt";
+my $fa = "fused.fa";
+my $table = "all_GANTC_fused.txt";
+local *FD;
+my $cur;
+open FD, $fa or die "Can't open $fa : $!";
+while ( <FD> ) {
+  if (/^>[^|]+\|([^|\s]+)/) {
+    $cur = $1;
+    $S{$cur} = "";
+    next;
+  }
+  if (/^>([^|\s]+)/) {
+    $cur = $1;
+    $S{$cur} = "";
+    next;
+  }
+  s/\s+$//s;
+  $S{$cur} .= uc;
+}
+close FD;
+my %P;
+foreach my $ac (keys %S) {
+  $P{$ac} = {};
+  while ($S{$ac} =~ /(GA.TC)/g) {
+    my $pos = $-[0];
+    my $tag = substr $S{$ac}, $pos, 5;
+    $pos += 2;
+    $P{$ac}->{$pos} = $tag;
+  }
+}
+my %T;
+open FD, $table or die "Can't open $table : $!";
+my $head = <FD>;
+print $head;
+while ( <FD> ) {
+  my @F = split /\t/;
+  $T{$F[0]} = {} unless defined $T{$F[0]};
+  $T{$F[0]}->{$F[1]} = \@F;
+}
+close FD;
+for my $ac (sort keys %P) {
+  my $h = $P{$ac};
+  for my $pos (sort { $a <=> $b } keys %$h) {
+    my $tag = $P{$ac}->{$pos};
+    my $F;
+    if (defined $T{$ac}->{$pos}) {
+      $F = $T{$ac}->{$pos};
+      $$F[4] = "1.00" if $$F[4] eq "NA";
+      $$F[7] = "1.00" if $$F[7] eq "NA";
+      $$F[10] = "1.00" if $$F[10] eq "NA";
+    } else {
+      $F = [ $ac, $pos, $tag, "+", "1.00", "NA", "NA", "1.00", "NA", "NA", "1.00", "NA", "NA\n" ];
+    }
+    print join("\t", @$F);
+    $pos += 2;
+    $tag = reverse $tag;
+    $tag =~ tr/ACGT/TGCA/;
+    if (defined $T{$ac}->{$pos}) {
+      $F = $T{$ac}->{$pos};
+      $$F[4] = "1.00" if $$F[4] eq "NA";
+      $$F[7] = "1.00" if $$F[7] eq "NA";
+      $$F[10] = "1.00" if $$F[10] eq "NA";
+    } else {
+      $F = [ $ac, $pos, $tag, "-", "1.00", "NA", "NA", "1.00", "NA", "NA", "1.00", "NA", "NA\n" ];
+    }
+    print join("\t", @$F);
+  }
+}
+exit 0;
+__END__
+==> all_GANTC.txt <==
+chr	pos	motif	strand	JC2140_neg_ipd	JC2140_neg_coverage	JC2140_neg_score	JC2307_neg_ipd	JC2307_neg_coverage	JC2307_neg_score	JC2307_pos_ipd	JC2307_pos_coverage	JC2307_pos_score
+NC_003062	246	GACTC	+	2.06	663	118	NA	NA	NA	2.45	659	193
+NC_003062	248	GAGTC	-	2.68	711	255	NA	NA	NA	3.28	669	368
+NC_003062	260	GACTC	+	2.99	654	324	1.39	651	32	3.76	648	515
+NC_003062	262	GAGTC	-	4.05	700	526	1.75	663	90	3.95	665	539
+NC_003062	1029	GAATC	+	3.26	648	390	1.88	651	110	3.93	663	510
+NC_003062	1031	GATTC	-	3.39	645	422	2.42	675	198	4.17	692	618
+NC_003062	1550	GAATC	+	3.92	674	471	1.40	631	33	4.39	658	485
+NC_003062	1552	GATTC	-	3.57	649	420	1.41	653	34	3.64	682	477
+NC_003062	1655	GATTC	+	2.94	692	328	NA	NA	NA	3.40	667	451
+
+==> atu_dna <==
+>chr|NC_003062| Chromosome circular; [Agrobacterium fabrum str. C58]  complete sequence
+AAGACCGAAATTTACGCACCTGTGGACAATCTGGGGAGAATTTTGAACAGTTCCGTCTTATTCCAGTAATTCACAGGCGT
+CTCGAAGACGAGAGACGCCACTTGCGGATTGTGGAAAAACACCACCTTATTCACCCCGCGGCTCGGCCCGTCGGACAATT
+CAGAGATTTGTCCCGGTTTATCAACAGGGGGAGAAAAACAGCGTGGAGAACAAAAAAAGCTTCTTCCATCTGCACCTGAT
+TTCGGACTCGACGGGAGAGACTCTGATGTCGGCCGGCCGCGCCGTCTCGGCGCAGTTTCATACATCCATGCCGGTGGAAC
+ATGTCTATCCGATGATCCGCAACCAGAAGCAGCTCGCGCAGGTCATCGATCTCATCGACAAGGAGCCCGGCATTGTTCTT
+TATACAATCGTTGATCAGCAGCTGGCGGAATTCCTGGATCTGCGCTGCCATGCGATTGGCGTGCCCTGCGTCAACGTTCT
+CGAACCGATCATCGGCATTTTCCAGACCTATCTCGGCGCGCCGTCCAGGCGGCGGGTGGGTGCGCAACACGCGCTGAATG
+CCGATTATTTCGCGCGGATCGAAGCACTCAATTTCGCCATGGACCATGATGACGGGCAGATGCCGGAGACCTATGACGAT
+GCGGATGTCGTCATCATCGGCATCAGCCGCACGTCGAAAACACCAACCAGCATCTATCTTGCTAACAGGGGCATAAAGAC

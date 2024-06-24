@@ -1,0 +1,103 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+#my @L = glob "JC2???_???_C58-met/motifs.gff";
+my @L = glob "JC2???_???_fused-met/motifs.gff";
+my %C;
+my @N;
+local *FD;
+foreach my $file (@L) {
+  open FD, $file or die "Can't open $file : $!";
+  my ($name) = substr $file, 0, 10;
+  push @N, $name;
+  while ( <FD> ) {
+    next if /^#/;
+    my @F = split /\t/;
+    my ($tag) = $F[8] =~ /context=([^;\s]+)/;
+    die "grmp $F[8]" unless defined $tag;
+    die "bad tag length $tag" if length($tag) != 41;
+    my $motif = substr $tag, 19, 5;
+    next unless $motif =~ /^GA.TC/;
+    my ($ipd) = $F[8] =~ /IPDRatio=([.\d]+)/;
+    my ($coverage) = $F[8] =~ /coverage=(\d+)/;
+    my ($chr) = $F[0] =~ /[^|]\|([^|]+)/;
+    $chr = $F[0] unless defined $chr;
+    die "grmp $F[0]" unless defined $chr;
+    $C{$chr} = {} unless defined $C{$chr};
+    $C{$chr}->{$F[3]} = {} unless defined $C{$chr}->{$F[3]};
+    $C{$chr}->{$F[3]}->{$name} = [ $motif, $ipd, $coverage, $F[5], $F[6] ];
+  }
+  close FD;
+}
+my @SN = sort @N;
+print "chr\tpos\tmotif\tstrand";
+foreach my $name (@SN) {
+  foreach my $part ("ipd", "coverage", "score") {
+    print "\t$name", "_$part";
+  }
+}
+print "\n";
+foreach my $chr (sort keys %C) {
+  my $h = $C{$chr};
+  foreach my $pos (sort { $a <=> $b } keys %$h) {
+    my $motif;
+    my $strand;
+    foreach my $name (@SN) {
+      my $A = $h->{$pos}->{$name};
+      if (defined $A) {
+	$motif = $$A[0];
+	die "bug $motif $$A[0]" if $motif ne $$A[0];
+	$strand = $$A[4];
+	die "bug $strand $$A[4]" if $strand ne $$A[4];
+      }
+    }
+    die "bug $chr $pos" unless defined($motif) and defined($strand);
+    print "$chr\t$pos\t$motif\t$strand";
+    foreach my $name (@SN) {
+      my $A = $h->{$pos}->{$name};
+      if (defined $A) {
+	print "\t", $$A[1], "\t", $$A[2], "\t", $$A[3];
+      } else {
+	print "\tNA\tNA\tNA";
+      }
+    }
+    print "\n";
+  }
+}
+exit 0;
+__END__
+==> JC2140_neg_C58-met/motifs.gff <==
+##gff-version 3
+##source ipdSummary v2.0
+##sequence-region chr|NC_003062| 1 2841580
+##sequence-region chr|NC_003063| 1 2075577
+##sequence-region rs|NC_003064| 1 542868
+##sequence-region rs|NC_003065| 1 214233
+chr|NC_003062|	kinModCall	modified_base	74	74	42	-	.	coverage=705;context=CTCTCGTCTTCGAGACGCCTGTGAATTACTGGAATAAGACG;IPDRatio=1.44
+chr|NC_003062|	kinModCall	modified_base	75	75	51	-	.	coverage=703;context=TCTCTCGTCTTCGAGACGCCTGTGAATTACTGGAATAAGAC;IPDRatio=1.68
+chr|NC_003062|	kinModCall	modified_base	105	105	47	-	.	coverage=711;context=GTGGTGTTTTTCCACAATCCGCAAGTGGCGTCTCTCGTCTT;IPDRatio=1.44
+chr|NC_003062|	kinModCall	modified_base	223	223	38	-	.	coverage=715;context=GAAATCAGGTGCAGATGGAAGAAGCTTTTTTTGTTCTCCAC;IPDRatio=1.39
+
+==> JC2307_neg_C58-met/motifs.gff <==
+##gff-version 3
+##source ipdSummary v2.0
+##sequence-region chr|NC_003062| 1 2841580
+##sequence-region chr|NC_003063| 1 2075577
+##sequence-region rs|NC_003064| 1 542868
+##sequence-region rs|NC_003065| 1 214233
+chr|NC_003062|	kinModCall	modified_base	74	74	31	-	.	coverage=658;context=CTCTCGTCTTCGAGACGCCTGTGAATTACTGGAATAAGACG;IPDRatio=1.35
+chr|NC_003062|	kinModCall	modified_base	75	75	56	-	.	coverage=659;context=TCTCTCGTCTTCGAGACGCCTGTGAATTACTGGAATAAGAC;IPDRatio=1.73
+chr|NC_003062|	kinModCall	modified_base	105	105	45	-	.	coverage=672;context=GTGGTGTTTTTCCACAATCCGCAAGTGGCGTCTCTCGTCTT;IPDRatio=1.44
+chr|NC_003062|	kinModCall	modified_base	211	211	33	-	.	coverage=684;context=AGATGGAAGAAGCTTTTTTTGTTCTCCACGCTGTTTTTCTC;IPDRatio=1.36
+
+==> JC2307_pos_C58-met/motifs.gff <==
+##gff-version 3
+##source ipdSummary v2.0
+##sequence-region chr|NC_003062| 1 2841580
+##sequence-region chr|NC_003063| 1 2075577
+##sequence-region rs|NC_003064| 1 542868
+##sequence-region rs|NC_003065| 1 214233
+chr|NC_003062|	kinModCall	modified_base	74	74	36	-	.	coverage=652;context=CTCTCGTCTTCGAGACGCCTGTGAATTACTGGAATAAGACG;IPDRatio=1.39
+chr|NC_003062|	kinModCall	modified_base	75	75	36	-	.	coverage=636;context=TCTCTCGTCTTCGAGACGCCTGTGAATTACTGGAATAAGAC;IPDRatio=1.55
+chr|NC_003062|	kinModCall	modified_base	105	105	45	-	.	coverage=658;context=GTGGTGTTTTTCCACAATCCGCAAGTGGCGTCTCTCGTCTT;IPDRatio=1.44
+chr|NC_003062|	kinModCall	modified_base	220	220	52	-	.	coverage=681;context=ATCAGGTGCAGATGGAAGAAGCTTTTTTTGTTCTCCACGCT;IPDRatio=1.49
